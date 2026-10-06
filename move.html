@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Moving your heroes</title>
+<style>body{margin:0;background:#0b0d15;color:#d9dcea;font:15px/1.6 ui-monospace,Menlo,Consolas,monospace;display:grid;place-items:center;min-height:100vh;padding:16px;box-sizing:border-box;text-align:center}a{color:#eaa94a}</style>
+</head>
+<body>
+<p id="msg">Packing your heroes for <a href="https://playundervault.com/">playundervault.com</a>...</p>
+<script>
+/* Lanterns of the Undervault lived at a-theme.github.io/undervault until v1.17.0. A browser keeps saves per address,
+   and this page shares that address, so it can read the heroes saved there. It packs them (and the settings, never the
+   sign-in) into the #move= part of the new site's address, which stays in the browser and is never sent to a server.
+   The game's moveIn() unpacks them into free hero slots. The same format as movePack() in the game's ui.js. */
+(async function(){
+  var NEW='https://playundervault.com/',slots=[],prefs={},pack='none';
+  try{
+    ['undervault-slot-1','undervault-slot-2','undervault-slot-3','undervault-save-v1'].forEach(function(k){var t=localStorage.getItem(k);if(t&&slots.length<3)slots.push(t);});
+    for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('uv-')===0&&k!=='uv-auth')prefs[k.slice(3)]=localStorage.getItem(k);}
+  }catch(e){}
+  if(slots.length||Object.keys(prefs).length){
+    var json=JSON.stringify({v:1,slots:slots,prefs:prefs});
+    try{
+      var cs=new CompressionStream('deflate-raw'),w=cs.writable.getWriter();w.write(new TextEncoder().encode(json));w.close();
+      var b=new Uint8Array(await new Response(cs.readable).arrayBuffer()),s='';
+      for(var j=0;j<b.length;j+=8192)s+=String.fromCharCode.apply(null,b.subarray(j,j+8192));
+      pack='z.'+btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    }catch(e){pack='j.'+encodeURIComponent(json);}
+  }
+  location.replace(NEW+'#move='+pack);
+})();
+</script>
+<noscript><p>Turn on JavaScript to bring your heroes over, or use <b>Menu → Export save</b> at the old address.</p></noscript>
+</body>
+</html>
